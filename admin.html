@@ -3,34 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Administrativo - Frota</title>
+    <title>Controle de Frota - Motorista</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-900 text-white min-h-screen p-4 md:p-8">
-    <div class="max-w-6xl mx-auto">
-        <header class="flex justify-between items-center mb-8 border-b border-gray-700 pb-4">
-            <h1 class="text-3xl font-bold text-blue-400">Gerenciamento de Frota</h1>
-            <div id="status-geral" class="text-sm bg-gray-800 px-4 py-2 rounded-full">
-                Carregando dados...
-            </div>
+<body class="bg-gray-100 min-h-screen">
+    <div class="max-w-md mx-auto bg-white min-h-screen shadow-lg">
+        <header class="bg-blue-600 p-4 text-white text-center font-bold text-xl">
+            Checklist de Saída
         </header>
 
-        <div id="alertas" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <form id="formChecklist" class="p-6 space-y-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Veículo</label>
+                <select id="veiculo" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" required>
+                    <option value="">Carregando veículos...</option>
+                </select>
             </div>
 
-        <div class="bg-gray-800 rounded-xl shadow-xl overflow-hidden">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-gray-700 text-gray-300 uppercase text-sm">
-                        <th class="p-4">Veículo</th>
-                        <th class="p-4">KM Atual</th>
-                        <th class="p-4">Desde a Revisão</th>
-                        <th class="p-4">Status</th>
-                    </tr>
-                </thead>
-                <tbody id="tabela-veiculos">
-                    </tbody>
-            </table>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Destino da Rota</label>
+                <input type="text" id="rota" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="Ex: São Paulo -> Rio" required>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">KM Atual do Painel</label>
+                <input type="number" id="km" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="000000" required>
+            </div>
+
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h3 class="font-bold mb-3 text-blue-800">Checklist Obrigatório</h3>
+                <div class="space-y-3">
+                    <label class="flex items-center"><input type="checkbox" class="h-5 w-5 mr-3" required> Óleo do motor verificado</label>
+                    <label class="flex items-center"><input type="checkbox" class="h-5 w-5 mr-3" required> Pneus calibrados</label>
+                    <label class="flex items-center"><input type="checkbox" class="h-5 w-5 mr-3" required> Luzes (setas/farol) OK</label>
+                    <label class="flex items-center"><input type="checkbox" class="h-5 w-5 mr-3" required> Freios testados</label>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700 transition">
+                Finalizar e Iniciar Rota
+            </button>
+        </form>
+
+        <div id="mensagem" class="hidden p-4 mx-6 bg-blue-100 text-blue-700 rounded-lg text-center font-semibold">
+            Enviando dados...
         </div>
     </div>
 
@@ -38,60 +54,65 @@
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
         const supabaseUrl = 'https://smvozmbvxskotrkvthfg.supabase.co'
-        const supabaseKey = 'sb_publishable_hhbIuaSwwQaiGvrvhLF2OA_sYiv-lUb'
+        const supabaseKey = '@sb_publishable_hhbIuaSwwQaiGvrvhLF2OA_sYiv-lUb'
         const supabase = createClient(supabaseUrl, supabaseKey)
 
-        async function carregarDados() {
-            // Buscamos os dados da "View" que criamos no SQL
-            const { data, error } = await supabase.from('status_revisao').select('*');
+        const form = document.getElementById('formChecklist');
+        const msg = document.getElementById('mensagem');
+        const selectVeiculo = document.getElementById('veiculo');
 
+        // --- FUNÇÃO PARA CARREGAR VEÍCULOS AUTOMATICAMENTE ---
+        async function carregarVeiculos() {
+            const { data, error } = await supabase.from('veiculos').select('placa, modelo');
             if (error) {
-                console.error('Erro:', error);
+                console.error('Erro ao buscar veículos:', error);
+                selectVeiculo.innerHTML = '<option value="">Erro ao carregar</option>';
                 return;
             }
-
-            const tabela = document.getElementById('tabela-veiculos');
-            const alertasDiv = document.getElementById('alertas');
-            tabela.innerHTML = '';
-            alertasDiv.innerHTML = '';
-
-            let revisoesCriticas = 0;
-
-            data.forEach(veiculo => {
-                const precisaRevisao = veiculo.km_rodados_desde_revisao >= 5000;
-                if (precisaRevisao) revisoesCriticas++;
-
-                // Adiciona na Tabela
-                tabela.innerHTML += `
-                    <tr class="border-b border-gray-700 hover:bg-gray-750 transition">
-                        <td class="p-4 font-bold text-blue-300">${veiculo.placa} <br><span class="text-xs font-normal text-gray-400">${veiculo.modelo || 'Sem modelo'}</span></td>
-                        <td class="p-4">${veiculo.km_atual.toLocaleString()} km</td>
-                        <td class="p-4">${veiculo.km_rodados_desde_revisao.toLocaleString()} km</td>
-                        <td class="p-4">
-                            <span class="px-3 py-1 rounded-full text-xs font-bold ${precisaRevisao ? 'bg-red-900 text-red-200' : 'bg-green-900 text-green-200'}">
-                                ${veiculo.status}
-                            </span>
-                        </td>
-                    </tr>
-                `;
-
-                // Adiciona Card de Alerta se estiver crítico
-                if (precisaRevisao) {
-                    alertasDiv.innerHTML += `
-                        <div class="bg-red-600 p-4 rounded-lg shadow-lg animate-pulse">
-                            <h3 class="font-bold text-white text-lg">REVISÃO NECESSÁRIA</h3>
-                            <p class="text-red-100">Veículo ${veiculo.placa} rodou ${veiculo.km_rodados_desde_revisao} km desde a última manutenção.</p>
-                        </div>
-                    `;
-                }
+            selectVeiculo.innerHTML = '<option value="">Selecione o veículo...</option>';
+            data.forEach(v => {
+                selectVeiculo.innerHTML += `<option value="${v.placa}">${v.modelo} (${v.placa})</option>`;
             });
-
-            document.getElementById('status-geral').innerText = `${data.length} Veículos monitorados | ${revisoesCriticas} Alertas`;
         }
+        carregarVeiculos();
 
-        carregarDados();
-        // Atualiza a cada 30 segundos
-        setInterval(carregarDados, 30000);
+        // --- ENVIO DO FORMULÁRIO ---
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = form.querySelector('button');
+            
+            btn.disabled = true;
+            msg.classList.remove('hidden');
+            msg.innerText = "Salvando no sistema...";
+
+            const dados = {
+                veiculo_id: selectVeiculo.value,
+                rota: document.getElementById('rota').value,
+                km_registro: parseInt(document.getElementById('km').value),
+                data_criacao: new Date()
+            };
+
+            // 1. Envia para a tabela de checklists
+            const { error: errChecklist } = await supabase
+                .from('checklists')
+                .insert([dados]);
+
+            // 2. Atualiza o KM na tabela de veículos
+            const { error: errVeiculo } = await supabase
+                .from('veiculos')
+                .update({ km_atual: dados.km_registro })
+                .eq('placa', dados.veiculo_id);
+
+            if (errChecklist || errVeiculo) {
+                alert('Erro ao salvar dados. Verifique a conexão.');
+            } else {
+                alert('Checklist realizado com sucesso! Boa viagem.');
+                form.reset();
+            }
+            
+            btn.disabled = false;
+            msg.classList.add('hidden');
+        });
     </script>
 </body>
 </html>

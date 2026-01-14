@@ -41,7 +41,10 @@
                     <label class="flex items-center"><input type="checkbox" class="h-5 w-5 mr-3" required> Freios testados</label>
                 </div>
             </div>
-
+            <div class="mt-4">
+    <label class="block text-sm font-medium text-gray-700">Foto do Veículo (Opcional)</label>
+    <input type="file" id="foto" accept="image/*" capture="camera" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+            </div>
             <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700 transition">
                 Finalizar e Iniciar Rota
             </button>
@@ -52,12 +55,20 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+
+// Verifica se o motorista está logado
+const motoristaId = localStorage.getItem('motorista_id');
+const motoristaNome = localStorage.getItem('motorista_nome');
+
+if (!motoristaId) {
+    window.location.href = 'login.html'; // Se não logou, volta pro login
+}
         // Adicione o SDK do Supabase no topo do script
 import { createClient } from 'https://jspm.dev/@supabase/supabase-js'
 
-const supabaseUrl = 'sb_publishable_hhbIuaSwwQaiGvrvhLF2OA_sYiv-lUb'
-const supabaseKey = '@Eloah110218'
+const supabaseUrl = 'https://smvozmbvxskotrkvthfg.supabase.co'
+const supabaseKey = 'sb_publishable_hhbIuaSwwQaiGvrvhLF2OA_sYiv-lUb'
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 const form = document.getElementById('formChecklist');
@@ -71,13 +82,32 @@ form.addEventListener('submit', async (e) => {
     msg.classList.remove('hidden');
     msg.innerText = "Salvando no sistema...";
 
-    const dados = {
-        veiculo_id: document.getElementById('veiculo').value,
-        rota: document.getElementById('rota').value,
-        km_registro: parseInt(document.getElementById('km').value),
-        data_criacao: new Date()
-    };
+// ... dentro do form.addEventListener ...
 
+const fotoArquivo = document.getElementById('foto').files[0];
+let fotoUrl = null;
+
+if (fotoArquivo) {
+    const nomeArquivo = `${Date.now()}_${fotoArquivo.name}`;
+    const { data, error: uploadError } = await supabase.storage
+        .from('fotos_checklist')
+        .upload(nomeArquivo, fotoArquivo);
+
+    if (data) {
+        const { data: urlData } = supabase.storage.from('fotos_checklist').getPublicUrl(nomeArquivo);
+        fotoUrl = urlData.publicUrl;
+    }
+}
+
+const dados = {
+    veiculo_id: document.getElementById('veiculo').value,
+    rota: document.getElementById('rota').value,
+    km_registro: parseInt(document.getElementById('km').value),
+    motorista_id: localStorage.getItem('motorista_id'),
+    motorista_nome_texto: localStorage.getItem('motorista_nome'),
+    foto_url: fotoUrl, // Salva o link da foto
+    data_criacao: new Date()
+};
     // 1. Envia para a tabela de checklists no Supabase
     const { error } = await supabase
         .from('checklists')

@@ -11,23 +11,48 @@
         <header class="flex justify-between items-center mb-8 border-b border-gray-700 pb-4">
             <div>
                 <h1 class="text-3xl font-bold text-blue-400">Controle de Frota</h1>
-                <p class="text-gray-400 text-sm">Gestão de Pagamentos e Manutenção</p>
+                <p class="text-gray-400 text-sm">Gestão Completa de Operação</p>
             </div>
-            <div id="status-geral" class="text-sm bg-gray-800 px-4 py-2 rounded-full border border-gray-600">
-                Carregando...
+            <div id="status-geral" class="text-sm bg-gray-800 px-4 py-2 rounded-full border border-gray-600 italic">
+                Aguardando conexão...
             </div>
         </header>
 
+        <section class="mb-12 bg-gray-800 p-6 rounded-xl border border-gray-700">
+            <h2 class="text-xl font-bold mb-6 text-blue-300">Cadastros Rápidos</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="text-sm font-bold uppercase text-gray-400 mb-3">Novo Motorista</h3>
+                    <div class="space-y-3">
+                        <input type="text" id="cad_mot_nome" placeholder="Nome Completo" class="w-full p-2 bg-gray-700 rounded border border-gray-600 text-sm">
+                        <div class="flex gap-2">
+                            <input type="text" id="cad_mot_user" placeholder="Usuário (Login)" class="w-1/2 p-2 bg-gray-700 rounded border border-gray-600 text-sm">
+                            <input type="password" id="cad_mot_senha" placeholder="Senha" class="w-1/2 p-2 bg-gray-700 rounded border border-gray-600 text-sm">
+                        </div>
+                        <button id="btn_cad_mot" class="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded font-bold text-sm">Salvar Motorista</button>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold uppercase text-gray-400 mb-3">Novo Veículo</h3>
+                    <div class="space-y-3">
+                        <input type="text" id="cad_vei_modelo" placeholder="Modelo (Ex: Caminhão 01)" class="w-full p-2 bg-gray-700 rounded border border-gray-600 text-sm">
+                        <div class="flex gap-2">
+                            <input type="text" id="cad_vei_placa" placeholder="Placa" class="w-1/2 p-2 bg-gray-700 rounded border border-gray-600 text-sm">
+                            <input type="number" id="cad_vei_km" placeholder="KM Inicial" class="w-1/2 p-2 bg-gray-700 rounded border border-gray-600 text-sm">
+                        </div>
+                        <button id="btn_cad_vei" class="w-full bg-green-600 hover:bg-green-700 py-2 rounded font-bold text-sm">Salvar Veículo</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section class="mb-12">
-            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-                <span class="bg-green-600 w-2 h-6 rounded-full"></span> Financeiro (Rotas)
-            </h2>
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-green-400">Financeiro (Rotas)</h2>
             <div class="flex flex-wrap gap-3 mb-6">
                 <button id="btn7" class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-bold transition shadow-lg">Esta Semana</button>
                 <button id="btn15" class="bg-gray-700 hover:bg-blue-600 px-6 py-2 rounded-lg font-bold transition">Quinzena</button>
                 <button id="btn30" class="bg-gray-700 hover:bg-blue-600 px-6 py-2 rounded-lg font-bold transition">Este Mês</button>
             </div>
-
             <div class="bg-gray-800 rounded-xl shadow-2xl overflow-hidden border border-gray-700">
                 <table class="w-full text-left border-collapse">
                     <thead>
@@ -45,9 +70,7 @@
         </section>
 
         <section>
-            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-                <span class="bg-red-600 w-2 h-6 rounded-full"></span> Alertas de Revisão (5.000 km)
-            </h2>
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-red-400">Alertas de Revisão (5.000 km)</h2>
             <div id="alertas-manutencao" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
         </section>
     </div>
@@ -55,106 +78,100 @@
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-        // COLOQUE SEUS DADOS REAIS AQUI
+        // 🔗 COLOQUE SUAS CHAVES AQUI
         const supabaseUrl = 'https://smvozmbvxskotrkvthfg.supabase.co'
         const supabaseKey = 'sb_publishable_hhbIuaSwwQaiGvrvhLF2OA_sYiv-lUb' 
         const supabase = createClient(supabaseUrl, supabaseKey)
 
-        const VALOR_POR_ROTA = 50.00;
+        const VALOR_POR_ROTA = 80.00;
 
-        // Função para carregar relatórios
-        async function carregarRelatorio(dias) {
-            const statusGeral = document.getElementById('status-geral');
-            statusGeral.innerText = "Carregando...";
+        // --- FUNÇÕES DE CADASTRO ---
+        document.getElementById('btn_cad_mot').addEventListener('click', async () => {
+            const nome = document.getElementById('cad_mot_nome').value;
+            const usuario = document.getElementById('cad_mot_user').value;
+            const senha = document.getElementById('cad_mot_senha').value;
             
+            const { error } = await supabase.from('motoristas').insert([{ nome, usuario, senha }]);
+            if (error) alert("Erro: " + error.message);
+            else { alert("Motorista cadastrado!"); location.reload(); }
+        });
+
+        document.getElementById('btn_cad_vei').addEventListener('click', async () => {
+            const modelo = document.getElementById('cad_vei_modelo').value;
+            const placa = document.getElementById('cad_vei_placa').value;
+            const km = parseInt(document.getElementById('cad_vei_km').value);
+            
+            const { error } = await supabase.from('veiculos').insert([{ modelo, placa, km_atual: km, km_ultima_revisao: km }]);
+            if (error) alert("Erro: " + error.message);
+            else { alert("Veículo cadastrado!"); location.reload(); }
+        });
+
+        // --- FUNÇÕES DE RELATÓRIO ---
+        async function carregarRelatorio(dias) {
+            document.getElementById('status-geral').innerText = "Processando relatório...";
             const dataLimite = new Date();
             dataLimite.setDate(dataLimite.getDate() - dias);
 
             const { data, error } = await supabase
                 .from('checklists')
                 .select('motorista_nome_texto, data_criacao, foto_url')
-                .gte('data_criacao', dataLimite.toISOString())
-                .order('data_criacao', { ascending: false });
+                .gte('data_criacao', dataLimite.toISOString());
 
-            if (error) {
-                console.error('Erro Supabase:', error);
-                return;
-            }
+            if (error) { console.error(error); return; }
 
             const resumo = {};
             data.forEach(item => {
                 const nome = item.motorista_nome_texto || "Não Identificado";
-                if (!resumo[nome]) {
-                    resumo[nome] = { qtd: 0, ultima: item.data_criacao, foto: item.foto_url };
-                }
+                if (!resumo[nome]) resumo[nome] = { qtd: 0, ultima: item.data_criacao, foto: item.foto_url };
                 resumo[nome].qtd++;
             });
 
             const tabela = document.getElementById('tabela-pagamentos');
             tabela.innerHTML = '';
-            let totalGeralRotas = 0;
-
             for (const nome in resumo) {
-                totalGeralRotas += resumo[nome].qtd;
-                const linkFoto = resumo[nome].foto 
-                    ? `<a href="${resumo[nome].foto}" target="_blank" class="bg-blue-900 text-blue-200 px-3 py-1 rounded text-xs">Ver Foto</a>`
-                    : `<span class="text-gray-500 text-xs">Sem foto</span>`;
-
+                const linkFoto = resumo[nome].foto ? `<a href="${resumo[nome].foto}" target="_blank" class="bg-blue-900 text-blue-200 px-2 py-1 rounded text-xs">Ver Foto</a>` : `<span class="text-gray-500 text-xs italic">Sem foto</span>`;
                 tabela.innerHTML += `
                     <tr class="hover:bg-gray-750 transition">
                         <td class="p-4 font-bold text-blue-300">${nome}</td>
                         <td class="p-4 text-center text-xl">${resumo[nome].qtd}</td>
-                        <td class="p-4 text-center text-green-400 font-bold font-mono">R$ ${(resumo[nome].qtd * VALOR_POR_ROTA).toFixed(2)}</td>
+                        <td class="p-4 text-center text-green-400 font-bold">R$ ${(resumo[nome].qtd * VALOR_POR_ROTA).toFixed(2)}</td>
                         <td class="p-4 text-center">${linkFoto}</td>
-                        <td class="p-4 text-right text-xs text-gray-400">
-                            ${new Date(resumo[nome].ultima).toLocaleDateString('pt-BR')}
-                        </td>
+                        <td class="p-4 text-right text-xs text-gray-400">${new Date(resumo[nome].ultima).toLocaleDateString('pt-BR')}</td>
                     </tr>`;
             }
-            statusGeral.innerText = `Período: ${dias} dias | Total: ${totalGeralRotas} rotas`;
+            document.getElementById('status-geral').innerText = `Visualizando últimos ${dias} dias.`;
         }
 
-        // Função para carregar manutenção
+        // --- MANUTENÇÃO ---
         async function carregarManutencao() {
             const { data, error } = await supabase.from('status_revisao').select('*');
-            const container = document.getElementById('alertas-manutencao');
             if (error) return;
-            
+            const container = document.getElementById('alertas-manutencao');
             container.innerHTML = '';
             data.forEach(v => {
                 const critico = v.km_rodados_desde_revisao >= 5000;
                 container.innerHTML += `
-                    <div class="p-4 rounded-lg border ${critico ? 'bg-red-900/20 border-red-500' : 'bg-gray-800 border-gray-700'} flex justify-between items-center shadow-lg">
+                    <div class="p-4 rounded-lg border ${critico ? 'bg-red-900/20 border-red-500' : 'bg-gray-800 border-gray-700'} flex justify-between items-center">
                         <div>
-                            <p class="font-bold text-lg text-white">${v.placa}</p>
-                            <p class="text-sm ${critico ? 'text-red-400 font-bold' : 'text-gray-400'}">
-                                Rodados: ${v.km_rodados_desde_revisao.toLocaleString()} km / 5.000 km
-                            </p>
+                            <p class="font-bold text-lg">${v.placa}</p>
+                            <p class="text-sm ${critico ? 'text-red-400' : 'text-gray-400'}">Rodados: ${v.km_rodados_desde_revisao} km / 5.000 km</p>
                         </div>
-                        <button onclick="window.resetarManutencao('${v.placa}', ${v.km_atual})" 
-                                class="bg-green-600 hover:bg-green-700 text-white text-xs px-4 py-2 rounded-lg font-bold transition uppercase">
-                            Zerar Contador
-                        </button>
+                        <button onclick="window.resetarManutencao('${v.placa}', ${v.km_atual})" class="bg-green-600 hover:bg-green-700 text-white text-xs px-4 py-2 rounded-lg font-bold">Zerar</button>
                     </div>`;
             });
         }
 
-        // Tornar a função de reset global
         window.resetarManutencao = async (placa, kmAtual) => {
-            if(!confirm(`O veículo ${placa} fez a revisão? O contador voltará a zero.`)) return;
-            const { error } = await supabase.from('veiculos').update({ km_ultima_revisao: kmAtual }).eq('placa', placa);
-            if (!error) {
-                alert('Revisão registrada!');
-                carregarManutencao();
-            }
+            if(!confirm("Zerar contador de revisão para o veículo " + placa + "?")) return;
+            await supabase.from('veiculos').update({ km_ultima_revisao: kmAtual }).eq('placa', placa);
+            location.reload();
         };
 
-        // Eventos dos botões (Corrige o erro de "not a function")
+        // --- LISTENERS ---
         document.getElementById('btn7').addEventListener('click', () => carregarRelatorio(7));
         document.getElementById('btn15').addEventListener('click', () => carregarRelatorio(15));
         document.getElementById('btn30').addEventListener('click', () => carregarRelatorio(30));
 
-        // Início automático
         carregarRelatorio(7);
         carregarManutencao();
     </script>

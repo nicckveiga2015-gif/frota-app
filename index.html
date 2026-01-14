@@ -54,10 +54,12 @@
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
         const supabaseUrl = 'https://smvozmbvxskotrkvthfg.supabase.co'
-        const supabaseKey = 'sb_publishable_hhbIuaSwwQaiGvrvhLF2OA_sYiv-lUb' // <--- USE A KEY QUE COMEÇA COM eyJ
+        
+        // IMPORTANTE: Substitua pela sua ANON KEY (a que começa com eyJ...)
+        const supabaseKey = 'sb_publishable_hhbIuaSwwQaiGvrvhLF2OA_sYiv-lUb' 
         const supabase = createClient(supabaseUrl, supabaseKey)
 
-        // 1. Preenche a data atual
+        // 1. Preenche a data atual automaticamente
         const campoData = document.getElementById('data_saida');
         const agora = new Date();
         agora.setMinutes(agora.getMinutes() - agora.getTimezoneOffset());
@@ -66,21 +68,22 @@
         // 2. Carrega veículos cadastrados no Admin
         async function carregarVeiculos() {
             const select = document.getElementById('veiculo');
-            const { data, error } = await supabase.from('veiculos').select('id, modelo, placa');
+            const { data, error } = await supabase.from('veiculos').select('modelo, placa');
             
             if (error) {
-                select.innerHTML = '<option>Erro ao carregar</option>';
+                select.innerHTML = '<option>Erro ao carregar veículos</option>';
                 return;
             }
 
             select.innerHTML = '<option value="">Selecione o veículo...</option>';
             data.forEach(v => {
+                // Usamos a placa como VALUE para salvar como TEXTO no banco
                 select.innerHTML += `<option value="${v.placa}">${v.modelo} - ${v.placa}</option>`;
             });
         }
         carregarVeiculos();
 
-        // 3. Envia os dados corrigindo o formato da data
+        // 3. Envia os dados
         document.getElementById('formChecklist').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnEnviar');
@@ -89,34 +92,42 @@
 
             const placaVeiculo = document.getElementById('veiculo').value;
             const kmInformado = parseInt(document.getElementById('km').value);
-
-            // CORREÇÃO DA DATA: Transforma o valor do input em formato que o Supabase aceita
             const dataISO = new Date(document.getElementById('data_saida').value).toISOString();
 
+            // Captura dados do motorista salvos no login
+            const motId = localStorage.getItem('motorista_id') || 'Não identificado';
+            const motNome = localStorage.getItem('motorista_nome') || 'Desconhecido';
+
             const dados = {
-                veiculo_id: placaVeiculo,
+                veiculo_id: placaVeiculo, // Salva a placa (Texto)
+                motorista_id: motId,      // Salva o ID (Texto)
+                motorista_nome_texto: motNome,
                 rota: document.getElementById('rota').value,
                 km_registro: kmInformado,
-                motorista_nome_texto: localStorage.getItem('motorista_nome'),
-                data_criacao: dataISO // Data formatada corretamente
+                data_criacao: dataISO
             };
 
-            // Salva o checklist
-            const { error: errCheck } = await supabase.from('checklists').insert([dados]);
+            try {
+                // Salva o checklist
+                const { error: errCheck } = await supabase.from('checklists').insert([dados]);
+                if (errCheck) throw errCheck;
 
-            // Atualiza o KM do veículo para o Admin ver
-            const { error: errVei } = await supabase.from('veiculos')
-                .update({ km_atual: kmInformado })
-                .eq('placa', placaVeiculo);
+                // Atualiza o KM do veículo
+                const { error: errVei } = await supabase.from('veiculos')
+                    .update({ km_atual: kmInformado })
+                    .eq('placa', placaVeiculo);
+                if (errVei) throw errVei;
 
-            if (errCheck || errVei) {
-                alert("Erro ao salvar. Verifique o console.");
-                console.error(errCheck || errVei);
-            } else {
                 alert("Checklist realizado com sucesso!");
-                location.reload();
+                window.location.reload();
+
+            } catch (err) {
+                console.error("Erro detalhado:", err);
+                alert("Erro ao salvar: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Finalizar Checklist";
             }
-            btn.disabled = false;
         });
     </script>
 </body>

@@ -12,6 +12,24 @@
             Checklist de Saída
         </header>
 
+        <div class="p-6 bg-gray-50 border-b">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 text-center">Meu Desempenho (Rotas)</h3>
+            <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="bg-white p-2 rounded-lg shadow-sm border border-blue-100">
+                    <p class="text-[10px] text-blue-600 font-bold uppercase">Semana</p>
+                    <p id="count-semana" class="text-xl font-black text-blue-800">0</p>
+                </div>
+                <div class="bg-white p-2 rounded-lg shadow-sm border border-indigo-100">
+                    <p class="text-[10px] text-indigo-600 font-bold uppercase">Quinzena</p>
+                    <p id="count-quinzena" class="text-xl font-black text-indigo-800">0</p>
+                </div>
+                <div class="bg-white p-2 rounded-lg shadow-sm border border-purple-100">
+                    <p class="text-[10px] text-purple-600 font-bold uppercase">Mês</p>
+                    <p id="count-mes" class="text-xl font-black text-purple-800">0</p>
+                </div>
+            </div>
+        </div>
+
         <form id="formChecklist" class="p-6 space-y-6">
             <div>
                 <label class="block text-sm font-medium text-gray-700">Data e Hora da Saída</label>
@@ -54,18 +72,56 @@
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
         const supabaseUrl = 'https://smvozmbvxskotrkvthfg.supabase.co'
-        
-        // IMPORTANTE: Substitua pela sua ANON KEY (a que começa com eyJ...)
-        const supabaseKey = 'sb_publishable_hhbIuaSwwQaiGvrvhLF2OA_sYiv-lUb' 
+        const supabaseKey = 'sb_publishable_hhbIuaSwwQaiGvrvhLF2OA_sYiv-lUb' // Lembre-se de usar a key correta (eyJ...)
         const supabase = createClient(supabaseUrl, supabaseKey)
 
-        // 1. Preenche a data atual automaticamente
+        const motNome = localStorage.getItem('motorista_nome') || 'Desconhecido';
+        const motId = localStorage.getItem('motorista_id') || 'Não identificado';
+
+        // 1. Inicialização da Data
         const campoData = document.getElementById('data_saida');
         const agora = new Date();
         agora.setMinutes(agora.getMinutes() - agora.getTimezoneOffset());
         campoData.value = agora.toISOString().slice(0, 16);
 
-        // 2. Carrega veículos cadastrados no Admin
+        // 2. Carregar Estatísticas de Rotas (Filtros)
+        async function carregarEstatisticas() {
+            const hoje = new Date();
+            
+            // Datas de corte
+            const inicioSemana = new Date();
+            inicioSemana.setDate(hoje.getDate() - 7);
+
+            const inicioQuinzena = new Date();
+            inicioQuinzena.setDate(hoje.getDate() - 15);
+
+            const inicioMes = new Date();
+            inicioMes.setMonth(hoje.getMonth() - 1);
+
+            // Busca as rotas do motorista logado no último mês
+            const { data, error } = await supabase
+                .from('checklists')
+                .select('data_criacao')
+                .eq('motorista_nome_texto', motNome)
+                .gte('data_criacao', inicioMes.toISOString());
+
+            if (error) {
+                console.error("Erro estatísticas:", error);
+                return;
+            }
+
+            // Conta as rotas filtrando o array de resultados
+            const totalSemana = data.filter(r => new Date(r.data_criacao) >= inicioSemana).length;
+            const totalQuinzena = data.filter(r => new Date(r.data_criacao) >= inicioQuinzena).length;
+            const totalMes = data.length;
+
+            // Atualiza na tela
+            document.getElementById('count-semana').innerText = totalSemana;
+            document.getElementById('count-quinzena').innerText = totalQuinzena;
+            document.getElementById('count-mes').innerText = totalMes;
+        }
+
+        // 3. Carregar Veículos
         async function carregarVeiculos() {
             const select = document.getElementById('veiculo');
             const { data, error } = await supabase.from('veiculos').select('modelo, placa');
@@ -77,13 +133,15 @@
 
             select.innerHTML = '<option value="">Selecione o veículo...</option>';
             data.forEach(v => {
-                // Usamos a placa como VALUE para salvar como TEXTO no banco
                 select.innerHTML += `<option value="${v.placa}">${v.modelo} - ${v.placa}</option>`;
             });
         }
-        carregarVeiculos();
 
-        // 3. Envia os dados
+        // Iniciar carregamentos
+        carregarVeiculos();
+        carregarEstatisticas();
+
+        // 4. Enviar Checklist
         document.getElementById('formChecklist').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnEnviar');
@@ -94,13 +152,9 @@
             const kmInformado = parseInt(document.getElementById('km').value);
             const dataISO = new Date(document.getElementById('data_saida').value).toISOString();
 
-            // Captura dados do motorista salvos no login
-            const motId = localStorage.getItem('motorista_id') || 'Não identificado';
-            const motNome = localStorage.getItem('motorista_nome') || 'Desconhecido';
-
             const dados = {
-                veiculo_id: placaVeiculo, // Salva a placa (Texto)
-                motorista_id: motId,      // Salva o ID (Texto)
+                veiculo_id: placaVeiculo,
+                motorista_id: motId,
                 motorista_nome_texto: motNome,
                 rota: document.getElementById('rota').value,
                 km_registro: kmInformado,
@@ -108,21 +162,17 @@
             };
 
             try {
-                // Salva o checklist
                 const { error: errCheck } = await supabase.from('checklists').insert([dados]);
                 if (errCheck) throw errCheck;
 
-                // Atualiza o KM do veículo
-                const { error: errVei } = await supabase.from('veiculos')
+                await supabase.from('veiculos')
                     .update({ km_atual: kmInformado })
                     .eq('placa', placaVeiculo);
-                if (errVei) throw errVei;
 
                 alert("Checklist realizado com sucesso!");
                 window.location.reload();
 
             } catch (err) {
-                console.error("Erro detalhado:", err);
                 alert("Erro ao salvar: " + err.message);
             } finally {
                 btn.disabled = false;

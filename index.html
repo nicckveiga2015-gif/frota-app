@@ -14,11 +14,14 @@
 
         <form id="formChecklist" class="p-6 space-y-6">
             <div>
+                <label class="block text-sm font-medium text-gray-700">Data e Hora da Rota</label>
+                <input type="datetime-local" id="data_saida" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm bg-gray-50" required>
+            </div>
+
+            <div>
                 <label class="block text-sm font-medium text-gray-700">Veículo</label>
                 <select id="veiculo" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" required>
-                    <option value="">Selecione o veículo...</option>
-                    <option value="ABC-1234">Caminhão 01 - ABC-1234</option>
-                    <option value="XYZ-5678">Van 02 - XYZ-5678</option>
+                    <option value="">Carregando veículos...</option>
                 </select>
             </div>
 
@@ -41,94 +44,114 @@
                     <label class="flex items-center"><input type="checkbox" class="h-5 w-5 mr-3" required> Freios testados</label>
                 </div>
             </div>
+
             <div class="mt-4">
-    <label class="block text-sm font-medium text-gray-700">Foto do Veículo (Opcional)</label>
-    <input type="file" id="foto" accept="image/*" capture="camera" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                <label class="block text-sm font-medium text-gray-700">Foto do Veículo (Opcional)</label>
+                <input type="file" id="foto" accept="image/*" capture="camera" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
             </div>
+
             <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700 transition">
                 Finalizar e Iniciar Rota
             </button>
         </form>
 
-        <div id="mensagem" class="hidden p-4 mx-6 bg-blue-100 text-blue-700 rounded-lg text-center font-semibold">
+        <div id="mensagem" class="hidden p-4 mx-6 bg-blue-100 text-blue-700 rounded-lg text-center font-semibold mb-6">
             Enviando dados...
         </div>
     </div>
 
     <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-// Verifica se o motorista está logado
-const motoristaId = localStorage.getItem('motorista_id');
-const motoristaNome = localStorage.getItem('motorista_nome');
+        // CONFIGURAÇÃO SUPABASE (Use a Anon Key que começa com eyJ...)
+        const supabaseUrl = 'https://smvozmbvxskotrkvthfg.supabase.co'
+        const supabaseKey = 'sb_publishable_hhbIuaSwwQaiGvrvhLF2OA_sYiv-lUb' 
+        const supabase = createClient(supabaseUrl, supabaseKey)
 
-if (!motoristaId) {
-    window.location.href = 'login.html'; // Se não logou, volta pro login
-}
-        // Adicione o SDK do Supabase no topo do script
-import { createClient } from 'https://jspm.dev/@supabase/supabase-js'
+        const motoristaId = localStorage.getItem('motorista_id');
+        const motoristaNome = localStorage.getItem('motorista_nome');
 
-const supabaseUrl = 'https://smvozmbvxskotrkvthfg.supabase.co'
-const supabaseKey = 'sb_publishable_hhbIuaSwwQaiGvrvhLF2OA_sYiv-lUb'
-const supabase = createClient(supabaseUrl, supabaseKey)
+        if (!motoristaId) {
+            window.location.href = 'login.html';
+        }
 
-const form = document.getElementById('formChecklist');
-const msg = document.getElementById('mensagem');
+        // --- INICIALIZAÇÃO DA DATA ATUAL ---
+        const campoData = document.getElementById('data_saida');
+        const agora = new Date();
+        agora.setMinutes(agora.getMinutes() - agora.getTimezoneOffset());
+        campoData.value = agora.toISOString().slice(0, 16);
 
-form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = form.querySelector('button');
-    
-    btn.disabled = true;
-    msg.classList.remove('hidden');
-    msg.innerText = "Salvando no sistema...";
+        // --- CARREGAR VEÍCULOS DO BANCO ---
+        async function carregarVeiculos() {
+            const select = document.getElementById('veiculo');
+            const { data, error } = await supabase.from('veiculos').select('id, modelo, placa');
 
-// ... dentro do form.addEventListener ...
+            if (error) {
+                console.error('Erro ao buscar veículos:', error);
+                select.innerHTML = '<option value="">Erro ao carregar veículos</option>';
+                return;
+            }
 
-const fotoArquivo = document.getElementById('foto').files[0];
-let fotoUrl = null;
+            select.innerHTML = '<option value="">Selecione o veículo...</option>';
+            data.forEach(v => {
+                const option = document.createElement('option');
+                option.value = v.placa; // Usamos a placa para vincular ao KM depois
+                option.textContent = `${v.modelo} - ${v.placa}`;
+                select.appendChild(option);
+            });
+        }
+        carregarVeiculos();
 
-if (fotoArquivo) {
-    const nomeArquivo = `${Date.now()}_${fotoArquivo.name}`;
-    const { data, error: uploadError } = await supabase.storage
-        .from('fotos_checklist')
-        .upload(nomeArquivo, fotoArquivo);
+        // --- ENVIO DO FORMULÁRIO ---
+        const form = document.getElementById('formChecklist');
+        const msg = document.getElementById('mensagem');
 
-    if (data) {
-        const { data: urlData } = supabase.storage.from('fotos_checklist').getPublicUrl(nomeArquivo);
-        fotoUrl = urlData.publicUrl;
-    }
-}
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = form.querySelector('button');
+            btn.disabled = true;
+            msg.classList.remove('hidden');
 
-const dados = {
-    veiculo_id: document.getElementById('veiculo').value,
-    rota: document.getElementById('rota').value,
-    km_registro: parseInt(document.getElementById('km').value),
-    motorista_id: localStorage.getItem('motorista_id'),
-    motorista_nome_texto: localStorage.getItem('motorista_nome'),
-    foto_url: fotoUrl, // Salva o link da foto
-    data_criacao: new Date()
-};
-    // 1. Envia para a tabela de checklists no Supabase
-    const { error } = await supabase
-        .from('checklists')
-        .insert([dados]);
+            // 1. Upload da Foto se existir
+            const fotoArquivo = document.getElementById('foto').files[0];
+            let fotoUrl = null;
 
-    // 2. Atualiza o KM atual do veículo para você monitorar a revisão
-    await supabase
-        .from('veiculos')
-        .update({ km_atual: dados.km_registro })
-        .eq('placa', dados.veiculo_id);
+            if (fotoArquivo) {
+                const nomeArquivo = `${Date.now()}_${fotoArquivo.name}`;
+                const { data: uploadData } = await supabase.storage.from('fotos_checklist').upload(nomeArquivo, fotoArquivo);
+                if (uploadData) {
+                    const { data: urlData } = supabase.storage.from('fotos_checklist').getPublicUrl(nomeArquivo);
+                    fotoUrl = urlData.publicUrl;
+                }
+            }
 
-    if (error) {
-        alert('Erro ao salvar: ' + error.message);
-    } else {
-        alert('Checklist realizado com sucesso! Boa viagem.');
-        form.reset();
-    }
-    
-    btn.disabled = false;
-    msg.classList.add('hidden');
-});
+            // 2. Preparar Dados
+            const dados = {
+                veiculo_id: document.getElementById('veiculo').value,
+                rota: document.getElementById('rota').value,
+                km_registro: parseInt(document.getElementById('km').value),
+                motorista_id: motoristaId,
+                motorista_nome_texto: motoristaNome,
+                foto_url: fotoUrl,
+                data_criacao: document.getElementById('data_saida').value
+            };
+
+            // 3. Salvar Checklist
+            const { error: errorChecklist } = await supabase.from('checklists').insert([dados]);
+
+            // 4. Atualizar KM do Veículo
+            const { error: errorVeiculo } = await supabase.from('veiculos').update({ km_atual: dados.km_registro }).eq('placa', dados.veiculo_id);
+
+            if (errorChecklist || errorVeiculo) {
+                alert('Erro ao salvar dados. Verifique a conexão.');
+            } else {
+                alert('Checklist enviado! Boa viagem, ' + motoristaNome);
+                location.reload();
+            }
+
+            btn.disabled = false;
+            msg.classList.add('hidden');
+        });
     </script>
 </body>
 </html>

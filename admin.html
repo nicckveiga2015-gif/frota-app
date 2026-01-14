@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo - Frota</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <header class="flex justify-between items-center mb-8 border-b border-gray-700 pb-4">
+            <h1 class="text-3xl font-bold text-blue-400">Gerenciamento de Frota</h1>
+            <div id="status-geral" class="text-sm bg-gray-800 px-4 py-2 rounded-full">
+                Carregando dados...
+            </div>
+        </header>
+
+        <div id="alertas" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            </div>
+
+        <div class="bg-gray-800 rounded-xl shadow-xl overflow-hidden">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-700 text-gray-300 uppercase text-sm">
+                        <th class="p-4">Veículo</th>
+                        <th class="p-4">KM Atual</th>
+                        <th class="p-4">Desde a Revisão</th>
+                        <th class="p-4">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela-veiculos">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+        const supabaseUrl = 'SUA_URL_AQUI'
+        const supabaseKey = 'SUA_CHAVE_ANON_AQUI'
+        const supabase = createClient(supabaseUrl, supabaseKey)
+
+        async function carregarDados() {
+            // Buscamos os dados da "View" que criamos no SQL
+            const { data, error } = await supabase.from('status_revisao').select('*');
+
+            if (error) {
+                console.error('Erro:', error);
+                return;
+            }
+
+            const tabela = document.getElementById('tabela-veiculos');
+            const alertasDiv = document.getElementById('alertas');
+            tabela.innerHTML = '';
+            alertasDiv.innerHTML = '';
+
+            let revisoesCriticas = 0;
+
+            data.forEach(veiculo => {
+                const precisaRevisao = veiculo.km_rodados_desde_revisao >= 5000;
+                if (precisaRevisao) revisoesCriticas++;
+
+                // Adiciona na Tabela
+                tabela.innerHTML += `
+                    <tr class="border-b border-gray-700 hover:bg-gray-750 transition">
+                        <td class="p-4 font-bold text-blue-300">${veiculo.placa} <br><span class="text-xs font-normal text-gray-400">${veiculo.modelo || 'Sem modelo'}</span></td>
+                        <td class="p-4">${veiculo.km_atual.toLocaleString()} km</td>
+                        <td class="p-4">${veiculo.km_rodados_desde_revisao.toLocaleString()} km</td>
+                        <td class="p-4">
+                            <span class="px-3 py-1 rounded-full text-xs font-bold ${precisaRevisao ? 'bg-red-900 text-red-200' : 'bg-green-900 text-green-200'}">
+                                ${veiculo.status}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+
+                // Adiciona Card de Alerta se estiver crítico
+                if (precisaRevisao) {
+                    alertasDiv.innerHTML += `
+                        <div class="bg-red-600 p-4 rounded-lg shadow-lg animate-pulse">
+                            <h3 class="font-bold text-white text-lg">REVISÃO NECESSÁRIA</h3>
+                            <p class="text-red-100">Veículo ${veiculo.placa} rodou ${veiculo.km_rodados_desde_revisao} km desde a última manutenção.</p>
+                        </div>
+                    `;
+                }
+            });
+
+            document.getElementById('status-geral').innerText = `${data.length} Veículos monitorados | ${revisoesCriticas} Alertas`;
+        }
+
+        carregarDados();
+        // Atualiza a cada 30 segundos
+        setInterval(carregarDados, 30000);
+    </script>
+</body>
+</html>

@@ -13,13 +13,13 @@
         <form id="loginForm" class="space-y-6">
             <div>
                 <label class="block text-sm font-medium text-gray-700">Usuário</label>
-                <input type="text" id="usuario" class="w-full p-3 border rounded-lg" required>
+                <input type="text" id="usuario" class="w-full p-3 border rounded-lg focus:ring-blue-500 outline-none" placeholder="Digite seu usuário" required>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Senha</label>
-                <input type="password" id="senha" class="w-full p-3 border rounded-lg" required>
+                <input type="password" id="senha" class="w-full p-3 border rounded-lg focus:ring-blue-500 outline-none" placeholder="Digite sua senha" required>
             </div>
-            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700">
+            <button type="submit" id="btnEntrar" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition shadow-lg">
                 Entrar
             </button>
         </form>
@@ -27,27 +27,49 @@
 
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-        const supabase = createClient('https://smvozmbvxskotrkvthfg.supabase.co', 'sb_publishable_hhbIuaSwwQaiGvrvhLF2OA_sYiv-lUb')
+        
+        // 1. Verifique se esta é a "Anon Key" (começa com eyJ...) no seu painel do Supabase
+        const supabaseUrl = 'https://smvozmbvxskotrkvthfg.supabase.co';
+        const supabaseKey = 'sb_secret_pzpyeYX18mcGM6a13pabHg_XAk0TyY2'; // <--- TROQUE PELA CHAVE QUE COMEÇA COM eyJ...
+        
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const user = document.getElementById('usuario').value;
-            const pass = document.getElementById('senha').value;
+            const btn = document.getElementById('btnEntrar');
+            
+            // Captura os valores e remove espaços acidentais nas pontas
+            const user = document.getElementById('usuario').value.trim();
+            const pass = document.getElementById('senha').value.trim();
 
-            const { data, error } = await supabase
-                .from('motoristas')
-                .select('*')
-                .eq('usuario', user)
-                .eq('senha', pass)
-                .single();
+            btn.disabled = true;
+            btn.innerText = "Verificando...";
 
-            if (data) {
-                // Salva os dados do motorista no navegador
-                localStorage.setItem('motorista_id', data.id);
-                localStorage.setItem('motorista_nome', data.nome);
-                window.location.href = 'index.html';
-            } else {
-                alert('Usuário ou senha incorretos!');
+            try {
+                // Busca o motorista no banco
+                const { data, error } = await supabase
+                    .from('motoristas')
+                    .select('id, nome')
+                    .eq('usuario', user)
+                    .eq('senha', pass)
+                    .maybeSingle(); // maybeSingle evita erros caso não encontre nada
+
+                if (error) throw error;
+
+                if (data) {
+                    // Sucesso: Salva os dados na sessão do navegador
+                    localStorage.setItem('motorista_id', data.id);
+                    localStorage.setItem('motorista_nome', data.nome);
+                    window.location.href = 'index.html';
+                } else {
+                    alert('Usuário ou senha incorretos! Verifique letras maiúsculas e minúsculas.');
+                }
+            } catch (err) {
+                console.error('Erro de conexão:', err);
+                alert('Erro ao conectar com o banco de dados. Verifique sua conexão.');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Entrar";
             }
         });
     </script>

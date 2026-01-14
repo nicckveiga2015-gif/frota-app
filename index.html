@@ -3,178 +3,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Checklist - Motorista</title>
+    <title>Checklist - Sistema de Frota</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">
-    <div class="max-w-md mx-auto bg-white min-h-screen shadow-lg">
-        <header class="bg-blue-600 p-4 text-white text-center font-bold text-xl">
-            Checklist de Saída
-        </header>
-
-        <div class="p-6 bg-gray-50 border-b">
-            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 text-center">Meu Desempenho (Rotas)</h3>
-            <div class="grid grid-cols-3 gap-2 text-center">
-                <div class="bg-white p-2 rounded-lg shadow-sm border border-blue-100">
-                    <p class="text-[10px] text-blue-600 font-bold uppercase">Semana</p>
-                    <p id="count-semana" class="text-xl font-black text-blue-800">0</p>
-                </div>
-                <div class="bg-white p-2 rounded-lg shadow-sm border border-indigo-100">
-                    <p class="text-[10px] text-indigo-600 font-bold uppercase">Quinzena</p>
-                    <p id="count-quinzena" class="text-xl font-black text-indigo-800">0</p>
-                </div>
-                <div class="bg-white p-2 rounded-lg shadow-sm border border-purple-100">
-                    <p class="text-[10px] text-purple-600 font-bold uppercase">Mês</p>
-                    <p id="count-mes" class="text-xl font-black text-purple-800">0</p>
-                </div>
+    <div id="app" class="max-w-md mx-auto bg-white min-h-screen shadow-lg">
+        
+        <div id="tela-login" class="p-8 hidden">
+            <div class="text-center mb-8">
+                <h1 class="text-2xl font-bold text-blue-600">Acesso Motorista</h1>
+                <p class="text-gray-500">Identifique-se para continuar</p>
+            </div>
+            <div class="space-y-4">
+                <input type="text" id="login-nome" placeholder="Seu Nome de Usuário" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="password" id="login-senha" placeholder="Sua Senha" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+                <button onclick="fazerLogin()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700">Entrar no Sistema</button>
             </div>
         </div>
 
-        <form id="formChecklist" class="p-6 space-y-6">
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Data e Hora da Saída</label>
-                <input type="datetime-local" id="data_saida" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm bg-gray-50" required>
-            </div>
+        <div id="conteudo-principal" class="hidden">
+            <header class="bg-blue-600 p-4 text-white flex justify-between items-center">
+                <span id="nome-exibicao" class="font-bold"></span>
+                <button onclick="logout()" class="text-xs bg-blue-800 px-2 py-1 rounded">Sair</button>
+            </header>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Veículo</label>
-                <select id="veiculo" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" required>
-                    <option value="">Carregando veículos...</option>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Destino da Rota</label>
-                <input type="text" id="rota" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="Ex: Entrega Local" required>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700">KM Atual</label>
-                <input type="number" id="km" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" required>
-            </div>
-
-            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <h3 class="font-bold mb-3 text-blue-800 text-sm uppercase">Itens Obrigatórios</h3>
-                <div class="space-y-3">
-                    <label class="flex items-center text-sm"><input type="checkbox" class="h-5 w-5 mr-3" required> Óleo e Água OK</label>
-                    <label class="flex items-center text-sm"><input type="checkbox" class="h-5 w-5 mr-3" required> Pneus OK</label>
-                    <label class="flex items-center text-sm"><input type="checkbox" class="h-5 w-5 mr-3" required> Luzes e Freios OK</label>
+            <div class="p-4 bg-gray-50 border-b">
+                <h3 class="text-[10px] font-bold text-gray-400 uppercase text-center mb-3">Minhas Rotas Realizadas</h3>
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="bg-white p-2 rounded border text-center">
+                        <p class="text-[10px] text-blue-500 font-bold">SEMANA</p>
+                        <p id="count-semana" class="text-lg font-black">0</p>
+                    </div>
+                    <div class="bg-white p-2 rounded border text-center">
+                        <p class="text-[10px] text-indigo-500 font-bold">QUINZENA</p>
+                        <p id="count-quinzena" class="text-lg font-black">0</p>
+                    </div>
+                    <div class="bg-white p-2 rounded border text-center">
+                        <p class="text-[10px] text-purple-500 font-bold">MÊS</p>
+                        <p id="count-mes" class="text-lg font-black">0</p>
+                    </div>
                 </div>
             </div>
 
-            <button type="submit" id="btnEnviar" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700 transition">
-                Finalizar Checklist
-            </button>
-        </form>
+            <form id="formChecklist" class="p-6 space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Veículo</label>
+                    <select id="veiculo" class="w-full p-2 border rounded-md" required>
+                        <option value="">Carregando veículos...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Destino da Rota</label>
+                    <input type="text" id="rota" class="w-full p-2 border rounded-md" placeholder="Ex: Rota Centro" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">KM Atual</label>
+                    <input type="number" id="km" class="w-full p-2 border rounded-md" required>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg space-y-2 border">
+                    <label class="flex items-center text-sm"><input type="checkbox" class="mr-2" required> Óleo e Água OK</label>
+                    <label class="flex items-center text-sm"><input type="checkbox" class="mr-2" required> Pneus OK</label>
+                    <label class="flex items-center text-sm"><input type="checkbox" class="mr-2" required> Luzes e Freios OK</label>
+                </div>
+                <button type="submit" id="btnEnviar" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg">Finalizar Checklist</button>
+            </form>
+        </div>
     </div>
 
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+        const supabase = createClient('https://smvozmbvxskotrkvthfg.supabase.co', 'sb_publishable_hhbIuaSwwQaiGvrvhLF2OA_sYiv-lUbSUA_ANON_KEY_AQUI')
 
-        const supabaseUrl = 'https://smvozmbvxskotrkvthfg.supabase.co'
-        const supabaseKey = 'sb_publishable_hhbIuaSwwQaiGvrvhLF2OA_sYiv-lUb' // Lembre-se de usar a key correta (eyJ...)
-        const supabase = createClient(supabaseUrl, supabaseKey)
+        // VERIFICAÇÃO DE LOGIN
+        window.onload = () => {
+            const motorista = localStorage.getItem('motorista_nome');
+            if (!motorista) {
+                document.getElementById('tela-login').classList.remove('hidden');
+            } else {
+                iniciarSistema();
+            }
+        };
 
-        const motNome = localStorage.getItem('motorista_nome') || 'Desconhecido';
-        const motId = localStorage.getItem('motorista_id') || 'Não identificado';
+        window.fazerLogin = async () => {
+            const nome = document.getElementById('login-nome').value;
+            const senha = document.getElementById('login-senha').value;
 
-        // 1. Inicialização da Data
-        const campoData = document.getElementById('data_saida');
-        const agora = new Date();
-        agora.setMinutes(agora.getMinutes() - agora.getTimezoneOffset());
-        campoData.value = agora.toISOString().slice(0, 16);
+            const { data, error } = await supabase.from('motoristas')
+                .select('*').eq('nome', nome).eq('senha', senha).single();
 
-        // 2. Carregar Estatísticas de Rotas (Filtros)
+            if (data) {
+                localStorage.setItem('motorista_nome', data.nome);
+                localStorage.setItem('motorista_id', data.id);
+                location.reload();
+            } else {
+                alert("Usuário ou senha incorretos!");
+            }
+        };
+
+        window.logout = () => {
+            localStorage.clear();
+            location.reload();
+        };
+
+        async function iniciarSistema() {
+            document.getElementById('conteudo-principal').classList.remove('hidden');
+            document.getElementById('nome-exibicao').innerText = "Olá, " + localStorage.getItem('motorista_nome');
+            carregarVeiculos();
+            carregarEstatisticas();
+        }
+
+        async function carregarVeiculos() {
+            const { data } = await supabase.from('veiculos').select('placa, modelo');
+            const select = document.getElementById('veiculo');
+            select.innerHTML = '<option value="">Selecione...</option>';
+            data.forEach(v => select.innerHTML += `<option value="${v.placa}">${v.modelo} - ${v.placa}</option>`);
+        }
+
         async function carregarEstatisticas() {
-            const hoje = new Date();
-            
-            // Datas de corte
-            const inicioSemana = new Date();
-            inicioSemana.setDate(hoje.getDate() - 7);
-
-            const inicioQuinzena = new Date();
-            inicioQuinzena.setDate(hoje.getDate() - 15);
-
+            const nome = localStorage.getItem('motorista_nome');
             const inicioMes = new Date();
-            inicioMes.setMonth(hoje.getMonth() - 1);
+            inicioMes.setMonth(inicioMes.getMonth() - 1);
 
-            // Busca as rotas do motorista logado no último mês
-            const { data, error } = await supabase
-                .from('checklists')
-                .select('data_criacao')
-                .eq('motorista_nome_texto', motNome)
+            const { data } = await supabase.from('checklists').select('data_criacao')
+                .eq('motorista_nome_texto', nome)
                 .gte('data_criacao', inicioMes.toISOString());
 
-            if (error) {
-                console.error("Erro estatísticas:", error);
-                return;
+            if (data) {
+                const hoje = new Date();
+                const totalSemana = data.filter(r => (hoje - new Date(r.data_criacao)) / (1000*60*60*24) <= 7).length;
+                const totalQuinzena = data.filter(r => (hoje - new Date(r.data_criacao)) / (1000*60*60*24) <= 15).length;
+                
+                document.getElementById('count-semana').innerText = totalSemana;
+                document.getElementById('count-quinzena').innerText = totalQuinzena;
+                document.getElementById('count-mes').innerText = data.length;
             }
-
-            // Conta as rotas filtrando o array de resultados
-            const totalSemana = data.filter(r => new Date(r.data_criacao) >= inicioSemana).length;
-            const totalQuinzena = data.filter(r => new Date(r.data_criacao) >= inicioQuinzena).length;
-            const totalMes = data.length;
-
-            // Atualiza na tela
-            document.getElementById('count-semana').innerText = totalSemana;
-            document.getElementById('count-quinzena').innerText = totalQuinzena;
-            document.getElementById('count-mes').innerText = totalMes;
         }
 
-        // 3. Carregar Veículos
-        async function carregarVeiculos() {
-            const select = document.getElementById('veiculo');
-            const { data, error } = await supabase.from('veiculos').select('modelo, placa');
-            
-            if (error) {
-                select.innerHTML = '<option>Erro ao carregar veículos</option>';
-                return;
-            }
-
-            select.innerHTML = '<option value="">Selecione o veículo...</option>';
-            data.forEach(v => {
-                select.innerHTML += `<option value="${v.placa}">${v.modelo} - ${v.placa}</option>`;
-            });
-        }
-
-        // Iniciar carregamentos
-        carregarVeiculos();
-        carregarEstatisticas();
-
-        // 4. Enviar Checklist
         document.getElementById('formChecklist').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnEnviar');
-            btn.disabled = true;
             btn.innerText = "Enviando...";
-
-            const placaVeiculo = document.getElementById('veiculo').value;
-            const kmInformado = parseInt(document.getElementById('km').value);
-            const dataISO = new Date(document.getElementById('data_saida').value).toISOString();
+            btn.disabled = true;
 
             const dados = {
-                veiculo_id: placaVeiculo,
-                motorista_id: motId,
-                motorista_nome_texto: motNome,
+                veiculo_id: document.getElementById('veiculo').value,
                 rota: document.getElementById('rota').value,
-                km_registro: kmInformado,
-                data_criacao: dataISO
+                km_registro: parseInt(document.getElementById('km').value),
+                motorista_id: localStorage.getItem('motorista_id'),
+                motorista_nome_texto: localStorage.getItem('motorista_nome'),
+                data_criacao: new Date().toISOString()
             };
 
-            try {
-                const { error: errCheck } = await supabase.from('checklists').insert([dados]);
-                if (errCheck) throw errCheck;
-
-                await supabase.from('veiculos')
-                    .update({ km_atual: kmInformado })
-                    .eq('placa', placaVeiculo);
-
-                alert("Checklist realizado com sucesso!");
-                window.location.reload();
-
-            } catch (err) {
-                alert("Erro ao salvar: " + err.message);
-            } finally {
+            const { error } = await supabase.from('checklists').insert([dados]);
+            
+            if (!error) {
+                alert("Sucesso!");
+                location.reload();
+            } else {
+                alert("Erro: " + error.message);
                 btn.disabled = false;
                 btn.innerText = "Finalizar Checklist";
             }

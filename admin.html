@@ -35,7 +35,7 @@
                 <div>
                     <h3 class="text-sm font-bold uppercase text-gray-400 mb-3">Novo Veículo</h3>
                     <div class="space-y-3">
-                        <input type="text" id="cad_vei_modelo" placeholder="Modelo (Ex: Caminhão 01)" class="w-full p-2 bg-gray-700 rounded border border-gray-600 text-sm">
+                        <input type="text" id="cad_vei_modelo" placeholder="Modelo (Ex: Fiorino)" class="w-full p-2 bg-gray-700 rounded border border-gray-600 text-sm">
                         <div class="flex gap-2">
                             <input type="text" id="cad_vei_placa" placeholder="Placa" class="w-1/2 p-2 bg-gray-700 rounded border border-gray-600 text-sm">
                             <input type="number" id="cad_vei_km" placeholder="KM Inicial" class="w-1/2 p-2 bg-gray-700 rounded border border-gray-600 text-sm">
@@ -78,14 +78,13 @@
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-        // 🔗 COLOQUE SUAS CHAVES AQUI
         const supabaseUrl = 'https://smvozmbvxskotrkvthfg.supabase.co'
         const supabaseKey = 'sb_publishable_hhbIuaSwwQaiGvrvhLF2OA_sYiv-lUb' 
         const supabase = createClient(supabaseUrl, supabaseKey)
 
         const VALOR_POR_ROTA = 80.00;
 
-        // --- FUNÇÕES DE CADASTRO ---
+        // --- CADASTROS ---
         document.getElementById('btn_cad_mot').addEventListener('click', async () => {
             const nome = document.getElementById('cad_mot_nome').value;
             const usuario = document.getElementById('cad_mot_user').value;
@@ -106,22 +105,27 @@
             else { alert("Veículo cadastrado!"); location.reload(); }
         });
 
-        // --- FUNÇÕES DE RELATÓRIO ---
+        // --- RELATÓRIO CORRIGIDO ---
         async function carregarRelatorio(dias) {
             document.getElementById('status-geral').innerText = "Processando relatório...";
             const dataLimite = new Date();
             dataLimite.setDate(dataLimite.getDate() - dias);
 
+            // Ajustado para buscar motorista_id em vez da coluna inexistente
             const { data, error } = await supabase
                 .from('checklists')
-                .select('motorista_nome_texto, data_criacao, foto_url')
+                .select('motorista_id, data_criacao, foto_url')
                 .gte('data_criacao', dataLimite.toISOString());
 
-            if (error) { console.error(error); return; }
+            if (error) { 
+                console.error("Erro Supabase:", error); 
+                document.getElementById('status-geral').innerText = "Erro ao carregar dados";
+                return; 
+            }
 
             const resumo = {};
             data.forEach(item => {
-                const nome = item.motorista_nome_texto || "Não Identificado";
+                const nome = item.motorista_id || "Não Identificado";
                 if (!resumo[nome]) resumo[nome] = { qtd: 0, ultima: item.data_criacao, foto: item.foto_url };
                 resumo[nome].qtd++;
             });
@@ -139,7 +143,7 @@
                         <td class="p-4 text-right text-xs text-gray-400">${new Date(resumo[nome].ultima).toLocaleDateString('pt-BR')}</td>
                     </tr>`;
             }
-            document.getElementById('status-geral').innerText = `Visualizando últimos ${dias} dias.`;
+            document.getElementById('status-geral').innerText = `Últimos ${dias} dias.`;
         }
 
         // --- MANUTENÇÃO ---
@@ -162,7 +166,7 @@
         }
 
         window.resetarManutencao = async (placa, kmAtual) => {
-            if(!confirm("Zerar contador de revisão para o veículo " + placa + "?")) return;
+            if(!confirm("Zerar revisão para " + placa + "?")) return;
             await supabase.from('veiculos').update({ km_ultima_revisao: kmAtual }).eq('placa', placa);
             location.reload();
         };

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Frota - Motorista</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="max-w-md mx-auto bg-white min-h-screen shadow-lg">
+        <header class="bg-blue-600 p-4 text-white text-center font-bold text-xl">
+            Checklist de Saída
+        </header>
+
+        <form id="formChecklist" class="p-6 space-y-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Veículo</label>
+                <select id="veiculo" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" required>
+                    <option value="">Selecione o veículo...</option>
+                    <option value="ABC-1234">Caminhão 01 - ABC-1234</option>
+                    <option value="XYZ-5678">Van 02 - XYZ-5678</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Destino da Rota</label>
+                <input type="text" id="rota" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="Ex: São Paulo -> Rio" required>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">KM Atual do Painel</label>
+                <input type="number" id="km" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="000000" required>
+            </div>
+
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h3 class="font-bold mb-3 text-blue-800">Checklist Obrigatório</h3>
+                <div class="space-y-3">
+                    <label class="flex items-center"><input type="checkbox" class="h-5 w-5 mr-3" required> Óleo do motor verificado</label>
+                    <label class="flex items-center"><input type="checkbox" class="h-5 w-5 mr-3" required> Pneus calibrados</label>
+                    <label class="flex items-center"><input type="checkbox" class="h-5 w-5 mr-3" required> Luzes (setas/farol) OK</label>
+                    <label class="flex items-center"><input type="checkbox" class="h-5 w-5 mr-3" required> Freios testados</label>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700 transition">
+                Finalizar e Iniciar Rota
+            </button>
+        </form>
+
+        <div id="mensagem" class="hidden p-4 mx-6 bg-blue-100 text-blue-700 rounded-lg text-center font-semibold">
+            Enviando dados...
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('formChecklist').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const msg = document.getElementById('mensagem');
+            
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            msg.classList.remove('hidden');
+
+            // Aqui entrará a conexão com o Supabase que faremos em seguida
+            setTimeout(() => {
+                alert('Dados registrados com sucesso! Boa viagem.');
+                location.reload();
+            }, 1500);
+        });
+    </script>
+</body>
+</html>

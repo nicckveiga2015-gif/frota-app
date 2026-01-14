@@ -145,14 +145,17 @@
             btn.innerText = "Enviando...";
             btn.disabled = true;
 
-            const dados = {
-                veiculo_id: document.getElementById('veiculo').value,
-                rota: document.getElementById('rota').value,
-                km_registro: parseInt(document.getElementById('km').value),
-                motorista_id: localStorage.getItem('motorista_id'),
-                motorista_nome_texto: localStorage.getItem('motorista_nome'),
-                data_criacao: new Date().toISOString()
-            };
+            // Dentro do document.getElementById('formChecklist').addEventListener...
+
+const dados = {
+    veiculo_id: document.getElementById('veiculo').value, // Envia a Placa
+    rota: document.getElementById('rota').value,
+    km_registro: parseInt(document.getElementById('km').value),
+    motorista_id: localStorage.getItem('motorista_nome'), // Usaremos o NOME como ID para facilitar os filtros
+    data_criacao: new Date().toISOString()
+};
+
+// Note que REMOVEMOS a linha 'motorista_nome_texto: ...'
 
             const { error } = await supabase.from('checklists').insert([dados]);
             

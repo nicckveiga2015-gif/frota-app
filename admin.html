@@ -23,9 +23,9 @@
                 <span class="bg-green-600 w-2 h-6 rounded-full"></span> Financeiro (Rotas)
             </h2>
             <div class="flex flex-wrap gap-3 mb-6">
-                <button onclick="window.atualizarFiltro(7)" class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-bold transition shadow-lg">Esta Semana</button>
-                <button onclick="window.atualizarFiltro(15)" class="bg-gray-700 hover:bg-blue-600 px-6 py-2 rounded-lg font-bold transition">Quinzena</button>
-                <button onclick="window.atualizarFiltro(30)" class="bg-gray-700 hover:bg-blue-600 px-6 py-2 rounded-lg font-bold transition">Este Mês</button>
+                <button id="btn7" class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-bold transition shadow-lg">Esta Semana</button>
+                <button id="btn15" class="bg-gray-700 hover:bg-blue-600 px-6 py-2 rounded-lg font-bold transition">Quinzena</button>
+                <button id="btn30" class="bg-gray-700 hover:bg-blue-600 px-6 py-2 rounded-lg font-bold transition">Este Mês</button>
             </div>
 
             <div class="bg-gray-800 rounded-xl shadow-2xl overflow-hidden border border-gray-700">
@@ -48,22 +48,25 @@
             <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
                 <span class="bg-red-600 w-2 h-6 rounded-full"></span> Alertas de Revisão (5.000 km)
             </h2>
-            <div id="alertas-manutencao" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                </div>
+            <div id="alertas-manutencao" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
         </section>
     </div>
 
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
+        // COLOQUE SEUS DADOS REAIS AQUI
         const supabaseUrl = 'https://smvozmbvxskotrkvthfg.supabase.co'
-        const supabaseKey = 'sb_publishable_hhbIuaSwwQaiGvrvhLF2OA_sYiv-lUb'
+        const supabaseKey = 'sb_publishable_hhbIuaSwwQaiGvrvhLF2OA_sYiv-lUb' 
         const supabase = createClient(supabaseUrl, supabaseKey)
 
-        const VALOR_POR_ROTA = 80.00;
+        const VALOR_POR_ROTA = 50.00;
 
-        // --- FUNÇÃO FINANCEIRA (RELATÓRIOS) ---
+        // Função para carregar relatórios
         async function carregarRelatorio(dias) {
+            const statusGeral = document.getElementById('status-geral');
+            statusGeral.innerText = "Carregando...";
+            
             const dataLimite = new Date();
             dataLimite.setDate(dataLimite.getDate() - dias);
 
@@ -73,7 +76,10 @@
                 .gte('data_criacao', dataLimite.toISOString())
                 .order('data_criacao', { ascending: false });
 
-            if (error) return;
+            if (error) {
+                console.error('Erro Supabase:', error);
+                return;
+            }
 
             const resumo = {};
             data.forEach(item => {
@@ -105,10 +111,10 @@
                         </td>
                     </tr>`;
             }
-            document.getElementById('status-geral').innerText = `Período: ${dias} dias | Total: ${totalGeralRotas} rotas`;
+            statusGeral.innerText = `Período: ${dias} dias | Total: ${totalGeralRotas} rotas`;
         }
 
-        // --- FUNÇÃO DE MANUTENÇÃO (REINICIAR KM) ---
+        // Função para carregar manutenção
         async function carregarManutencao() {
             const { data, error } = await supabase.from('status_revisao').select('*');
             const container = document.getElementById('alertas-manutencao');
@@ -133,15 +139,24 @@
             });
         }
 
+        // Tornar a função de reset global
         window.resetarManutencao = async (placa, kmAtual) => {
-            if(!confirm(`O veículo ${placa} fez a revisão? O contador de 5.000 km voltará a zero.`)) return;
+            if(!confirm(`O veículo ${placa} fez a revisão? O contador voltará a zero.`)) return;
             const { error } = await supabase.from('veiculos').update({ km_ultima_revisao: kmAtual }).eq('placa', placa);
             if (!error) {
-                alert('Revisão registrada com sucesso!');
+                alert('Revisão registrada!');
                 carregarManutencao();
             }
         };
 
-        // --- INICIALIZAÇÃO ---
-        window.atualizarFiltro = carregarRelatorio;
+        // Eventos dos botões (Corrige o erro de "not a function")
+        document.getElementById('btn7').addEventListener('click', () => carregarRelatorio(7));
+        document.getElementById('btn15').addEventListener('click', () => carregarRelatorio(15));
+        document.getElementById('btn30').addEventListener('click', () => carregarRelatorio(30));
+
+        // Início automático
         carregarRelatorio(7);
+        carregarManutencao();
+    </script>
+</body>
+</html>

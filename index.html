@@ -84,21 +84,26 @@
             }
         };
 
-        window.fazerLogin = async () => {
-            const nome = document.getElementById('login-nome').value;
-            const senha = document.getElementById('login-senha').value;
+       window.fazerLogin = async () => {
+    // trim() remove espaços acidentais que o teclado do celular costuma colocar
+    const usuarioDigitado = document.getElementById('login-nome').value.trim();
+    const senhaDigitada = document.getElementById('login-senha').value.trim();
 
-            const { data, error } = await supabase.from('motoristas')
-                .select('*').eq('nome', nome).eq('senha', senha).single();
+    const { data, error } = await supabase
+        .from('motoristas')
+        .select('*')
+        .eq('usuario', usuarioDigitado) // Busca na coluna 'usuario'
+        .eq('senha', senhaDigitada)
+        .maybeSingle();
 
-            if (data) {
-                localStorage.setItem('motorista_nome', data.nome);
-                localStorage.setItem('motorista_id', data.id);
-                location.reload();
-            } else {
-                alert("Usuário ou senha incorretos!");
-            }
-        };
+    if (data) {
+        localStorage.setItem('motorista_nome', data.nome);
+        localStorage.setItem('motorista_id', data.id);
+        location.reload();
+    } else {
+        alert("Usuário ou senha incorretos!");
+           }
+      };
 
         window.logout = () => {
             localStorage.clear();
